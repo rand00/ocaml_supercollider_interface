@@ -1,0 +1,3 @@
+[submodule "ocaml-osc"]
+	path = ocaml-osc
+	url = https://github.com/johnelse/ocaml-osc.git
