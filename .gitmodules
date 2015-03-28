@@ -1,0 +1,3 @@
+[submodule "lib_osc2"]
+	path = lib_osc
+	url = https://github.com/johnelse/ocaml-osc.git
