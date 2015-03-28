@@ -1,7 +1,7 @@
 true: thread
-#true: syntax(camlp4o)
+true: syntax(camlp4o)
 #true: package(text,text.pcre,text.pcre-syntax,batteries)
 true: package(lwt,lwt.syntax,lwt.unix)
 true: package(osc,osc.lwt)
-<ocaml-osc>: -traverse
+<lib_osc>: -traverse
 #true: cflags(-bin-annot)
