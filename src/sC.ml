@@ -88,7 +88,10 @@ module Synth = struct
     | `F f -> [ String var; Float32 f ]
     | `I i -> [ String var; Int32 (Int32.of_int i) ]
 
-  let map_args args = List.concat (List.map map_arg args)
+  let concat_map f l = 
+    List.fold_right (fun e acc -> (f e) @ acc) l [] 
+
+  let map_args args = concat_map map_arg args
 
   let send client message = 
     let (osc_client, addr, _) = client in
