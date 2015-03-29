@@ -1,5 +1,5 @@
 (*
-  LambdaTactician - a cmd-line tactical lambda game.
+  Simple OCaml SuperCollider Client
   Copyright (C) 2014 Claes Worm 
 
   This program is free software: you can redistribute it and/or modify
@@ -97,7 +97,7 @@ module Synth = struct
     let (osc_client, addr, _) = client in
     Lwt.async (fun () -> Osc_client.send osc_client addr message)
 
-  let start client synth args = 
+  let synth client synth args = 
     let (_, _, seed) = client in
     let nodeID = next_nodeID seed in
     let _ = send client (Message {
@@ -111,7 +111,7 @@ module Synth = struct
       }) 
     in { client; nodeID; synth }
 
-  let modify node args = 
+  let set node args = 
     send node.client (Message {
         address = "/n_set";
         arguments = [
@@ -119,7 +119,7 @@ module Synth = struct
         ] @ (map_args args)
       })
 
-  let stop node =
+  let free node =
     send node.client (Message {
         address = "/n_free";
         arguments = [ Int32 node.nodeID ]

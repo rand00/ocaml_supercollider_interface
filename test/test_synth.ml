@@ -12,16 +12,16 @@ module S = SC.Synth
 let sleep t = Lwt_main.run (Lwt_unix.sleep t)
 
 let test_01 c =
-  let _ = S.start c "ratata" [] in
+  let _ = S.synth c "ratata" [] in
   let _ = sleep 1.0 in
-  let s' = S.start c "sinew" [] in
+  let s' = S.synth c "sinew" [] in
   let _ = sleep 1.0 in
-  let _ = S.start c "ratata" [] in
-  let _ = S.stop s' in
+  let _ = S.synth c "ratata" [] in
+  let _ = S.free s' in
   sleep 2.0
 
-let s_ratata c = S.start c "ratata" []
-let s_sinew c = S.start c "sinew" [] 
+let s_ratata c = S.synth c "ratata" []
+let s_sinew c = S.synth c "sinew" [] 
 
 let rec switch c = function
   | 0 -> sleep 2.0
@@ -37,7 +37,7 @@ let rec switch c = function
         let _ = print_endline "odd" in
         let s = s_sinew c in
         sleep ((Random.float 1.0) +. 1.0); 
-        S.stop s)
+        S.free s)
       in switch c (pred n)
       
 
@@ -46,7 +46,7 @@ let test_02 c = switch c 10
 let freq_down s n = 
   for i = n downto 100 do 
     sleep 0.01; 
-    S.modify s [("freq", `I i)]
+    S.set s [("freq", `I i)]
   done 
 
 let test_03 c = 
