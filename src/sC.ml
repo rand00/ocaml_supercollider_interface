@@ -17,13 +17,37 @@
 *)
 
 open Lwt
-module Osc_tmp = struct include Osc_lwt.Udp end
-module Osc_server = Osc_tmp.Server
-module Osc_client = Osc_tmp.Client
+module Osc_client = Osc_lwt.Udp.Client
 
 module Server = struct 
 
   let run_script () =
+    let app_dir = Filename.dirname (Sys.argv.(0)) in
+    let log_dir = (app_dir ^ "/log") 
+    in
+    if not (Sys.file_exists log_dir) then 
+      Unix.mkdir log_dir 0o755
+    else (
+      if not (Sys.is_directory log_dir) then
+        failwith ("SC.Server: `log' is not a directory. ")
+    );
+    let cmd = String.concat "" [
+        "bash -c '"; app_dir; "/run_scsynth.sh' 2>&1 ";
+        "| tee "; app_dir; "/log/scsynth.log";
+      ] in
+    let is_sc_running = ((=) "SuperCollider 3 server ready.") 
+    (*<goto: make a more safe check..*)
+    and found = ref false 
+    and ic = Unix.open_process_in cmd in
+    begin
+      while not !found do
+        found := 
+          try is_sc_running (input_line ic) 
+          with End_of_file -> false
+      done
+    end
+      
+  let run_script_async () =
     Lwt_main.run
       (Lwt.async (fun () ->
            (if not (Sys.file_exists "log") then
