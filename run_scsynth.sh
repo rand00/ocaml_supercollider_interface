@@ -1,5 +1,4 @@
 #! /bin/bash
-#/bin/sh
 
 ## This script is based off of the following guide;
 ## http://swiki.hfbk-hamburg.de/MusicTechnology/634 

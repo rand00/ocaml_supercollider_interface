@@ -57,8 +57,6 @@ let test_03 c =
 let _ = 
   
   let _ = SC.Server.run_script () in 
-  (*<goto : grep for 'server ready' in output of scsynth and get return-msg from thread (put in returned mailbox)*)
-  let _ = sleep 6.0 in 
   let c = SC.Client.make () in
   let _ = test_03 c in
   SC.Client.quit_all c
