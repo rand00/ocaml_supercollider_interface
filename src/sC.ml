@@ -29,14 +29,14 @@ module Server = struct
       Unix.mkdir log_dir 0o755
     else (
       if not (Sys.is_directory log_dir) then
-        failwith ("SC.Server: `log' is not a directory. ")
+        failwith ("SC.Server: '"^log_dir^"' is not a directory. ")
     );
     let cmd = String.concat "" [
         "bash -c '"; app_dir; "/run_scsynth.sh' 2>&1 ";
         "| tee "; app_dir; "/log/scsynth.log";
       ] in
     let is_sc_running = ((=) "SuperCollider 3 server ready.") 
-    (*<goto: make a more safe check..*)
+    (*<goto: make a safer check.. regexp?*)
     and found = ref false 
     and ic = Unix.open_process_in cmd in
     begin
