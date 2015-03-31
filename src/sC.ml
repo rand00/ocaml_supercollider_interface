@@ -29,8 +29,8 @@ module Server = struct
       if not (Sys.file_exists log_dir) then
         Unix.mkdir log_dir 0o755
       else
-        if not (Sys.is_directory log_dir) then
-          failwith ("SC.Server: '"^log_dir^"' is not a directory. ")
+      if not (Sys.is_directory log_dir) then
+        failwith ("SC.Server: '"^log_dir^"' is not a directory. ")
     end;
     let cmd = String.concat "" [
         "bash -c '"; app_dir; "/run_scsynth.sh' 2>&1 ";
@@ -41,13 +41,14 @@ module Server = struct
     and ic = Unix.open_process_in cmd 
     and found = ref false in
     begin
-      while not !found do
+      while not !found do 
         found := 
           try is_sc_running (input_line ic) 
-          with End_of_file -> false
+          with End_of_file -> false 
       done
-    end
-      
+    end;
+    !found
+
   let run_script_async () =
     Lwt_main.run
       (Lwt.async (fun () ->
