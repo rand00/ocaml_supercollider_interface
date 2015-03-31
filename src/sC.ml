@@ -25,20 +25,21 @@ module Server = struct
     let app_dir = Filename.dirname (Sys.argv.(0)) in
     let log_dir = (app_dir ^ "/log") 
     in
-    if not (Sys.file_exists log_dir) then 
-      Unix.mkdir log_dir 0o755
-    else (
-      if not (Sys.is_directory log_dir) then
-        failwith ("SC.Server: '"^log_dir^"' is not a directory. ")
-    );
+    begin
+      if not (Sys.file_exists log_dir) then
+        Unix.mkdir log_dir 0o755
+      else
+        if not (Sys.is_directory log_dir) then
+          failwith ("SC.Server: '"^log_dir^"' is not a directory. ")
+    end;
     let cmd = String.concat "" [
         "bash -c '"; app_dir; "/run_scsynth.sh' 2>&1 ";
         "| tee "; app_dir; "/log/scsynth.log";
       ] in
-    let is_sc_running = ((=) "SuperCollider 3 server ready.") 
+    let is_sc_running = ((=) "SuperCollider 3 server ready.")  
     (*<goto: make a safer check.. regexp?*)
-    and found = ref false 
-    and ic = Unix.open_process_in cmd in
+    and ic = Unix.open_process_in cmd 
+    and found = ref false in
     begin
       while not !found do
         found := 
