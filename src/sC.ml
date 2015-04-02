@@ -36,8 +36,9 @@ module Server = struct
         "bash -c '"; app_dir; "/run_scsynth.sh' 2>&1 ";
         "| tee "; app_dir; "/log/scsynth.log";
       ] in
-    let is_sc_running = ((=) "SuperCollider 3 server ready.")  
-    (*<goto: make a safer check.. regexp?*)
+    let is_sc_running = function
+      | <:re< "SuperCollider" _* "server ready" >> -> true
+      | _ -> false 
     and ic = Unix.open_process_in cmd 
     and found = ref false in
     begin

@@ -1,6 +1,7 @@
 true: thread
 true: syntax(camlp4o)
-#true: package(text,text.pcre,text.pcre-syntax,batteries)
+true: package(text,text.pcre,text.pcre-syntax)
+#,batteries
 true: package(lwt,lwt.syntax,lwt.unix)
 true: package(osc,osc.lwt)
 <lib_osc>: -traverse
