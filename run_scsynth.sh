@@ -8,8 +8,8 @@ PORT=57110
 export SC_SYNTHDEF_PATH="./test_synths" 
 #< this get's loaded, but is not set as standard when writing synths
 
-#export SC_JACK_INPUTS=2
-#export SC_JACK_OUTPUTS=2
+export SC_JACK_INPUTS=2
+export SC_JACK_OUTPUTS=2
 
 if [[ $SC_JACK_DEFAULT_INPUTS == "" ]]
 then 
