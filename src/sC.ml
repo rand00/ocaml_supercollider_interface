@@ -21,7 +21,7 @@ module Osc_client = Osc_lwt.Udp.Client
 
 module Server = struct 
 
-  let run_script () =
+  let run () =
     let app_dir = Filename.dirname (Sys.argv.(0)) in
     let log_dir = (app_dir ^ "/log") 
     in
@@ -36,9 +36,8 @@ module Server = struct
         "bash -c '"; app_dir; "/run_scsynth.sh' 2>&1 ";
         "| tee "; app_dir; "/log/scsynth.log";
       ] in
-    let is_sc_running = function
-      | <:re< "SuperCollider" _* "server ready" >> -> true
-      | _ -> false 
+    let is_sc_running = 
+      Re.execp (Re_pcre.regexp "SuperCollider.*server ready")
     and ic = Unix.open_process_in cmd 
     and found = ref false in
     begin
@@ -49,6 +48,33 @@ module Server = struct
       done
     end;
     !found
+
+  let run_with_lwt () =
+    let app_dir = Filename.dirname (Sys.argv.(0)) in
+    let log_dir = (app_dir ^ "/log") 
+    in
+    begin
+      if not (Sys.file_exists log_dir) then
+        Unix.mkdir log_dir 0o755
+      else
+      if not (Sys.is_directory log_dir) then
+        failwith ("SC.Server: '"^log_dir^"' is not a directory. ")
+    end;
+    let cmd = String.concat "" [
+        "bash -c '"; app_dir; "/run_scsynth.sh' 2>&1 ";
+        "| tee "; app_dir; "/log/scsynth.log";
+      ] in
+    let is_sc_running = Re.execp (Re_pcre.regexp "SuperCollider.*server ready") 
+    and ic = return (Unix.open_process_in cmd)
+    in 
+    let rec loop_success () = 
+      try%lwt
+        ic >>= wrap1 input_line >>= wrap1 is_sc_running
+        >>= function 
+        | true -> return true
+        | false -> loop_success () 
+      with _ -> return false
+    in loop_success ()
 
   let run_script_async () =
     Lwt_main.run
