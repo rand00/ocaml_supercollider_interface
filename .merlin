@@ -1,0 +1,12 @@
+S .
+S src
+
+B _build/src
+
+PKG text
+PKG batteries 
+PKG lwt lwt.unix lwt.ppx
+PKG osc osc.lwt
+PKG re
+
+#EXT lwt
