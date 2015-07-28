@@ -19,26 +19,29 @@
 open Lwt
 module Osc_client = Osc_lwt.Udp.Client
 
-module Server = struct 
+module Server : sig 
+
+  val run : unit -> bool
+  val run_async : unit -> unit
+
+  module Lwt : sig val run : unit -> bool Lwt.t end
+
+end = struct 
+
+  let app_dir = Filename.dirname (Sys.argv.(0)) 
+  let log_dir = (app_dir ^ "/log") 
+  let script_cmd () = String.concat "" [
+      "bash -c '"; app_dir; "/run_scsynth.sh' 2>&1 ";
+      "| tee "; app_dir; "/log/scsynth.log";
+    ] 
+  let is_sc_running = Re.execp (Re_pcre.regexp "SuperCollider.*server ready")
 
   let run () =
-    let app_dir = Filename.dirname (Sys.argv.(0)) in
-    let log_dir = (app_dir ^ "/log") 
-    in
-    begin
-      if not (Sys.file_exists log_dir) then
-        Unix.mkdir log_dir 0o755
-      else
-      if not (Sys.is_directory log_dir) then
-        failwith ("SC.Server: '"^log_dir^"' is not a directory. ")
-    end;
-    let cmd = String.concat "" [
-        "bash -c '"; app_dir; "/run_scsynth.sh' 2>&1 ";
-        "| tee "; app_dir; "/log/scsynth.log";
-      ] in
-    let is_sc_running = 
-      Re.execp (Re_pcre.regexp "SuperCollider.*server ready")
-    and ic = Unix.open_process_in cmd 
+    if not (Sys.file_exists log_dir) then
+      Unix.mkdir log_dir 0o755
+    else if not (Sys.is_directory log_dir) then
+      failwith ("SC.Server: '"^log_dir^"' is not a directory. ");
+    let ic = Unix.open_process_in (script_cmd ())
     and found = ref false in
     begin
       while not !found do 
@@ -48,35 +51,8 @@ module Server = struct
       done
     end;
     !found
-
-  let run_with_lwt () =
-    let app_dir = Filename.dirname (Sys.argv.(0)) in
-    let log_dir = (app_dir ^ "/log") 
-    in
-    begin
-      if not (Sys.file_exists log_dir) then
-        Unix.mkdir log_dir 0o755
-      else
-      if not (Sys.is_directory log_dir) then
-        failwith ("SC.Server: '"^log_dir^"' is not a directory. ")
-    end;
-    let cmd = String.concat "" [
-        "bash -c '"; app_dir; "/run_scsynth.sh' 2>&1 ";
-        "| tee "; app_dir; "/log/scsynth.log";
-      ] in
-    let is_sc_running = Re.execp (Re_pcre.regexp "SuperCollider.*server ready") 
-    and ic = return (Unix.open_process_in cmd)
-    in 
-    let rec loop_success () = 
-      try%lwt
-        ic >>= wrap1 input_line >>= wrap1 is_sc_running
-        >>= function 
-        | true -> return true
-        | false -> loop_success () 
-      with _ -> return false
-    in loop_success ()
-
-  let run_script_async () =
+      
+  let run_async () =
     Lwt_main.run
       (Lwt.async (fun () ->
            (if not (Sys.file_exists "log") then
@@ -86,6 +62,25 @@ module Server = struct
             else return ())
            >> Lwt_unix.system "./run_scsynth.sh 2>&1 > ./log/scsynth.log");
        return ())
+
+  module Lwt = struct
+
+    let run () =
+      if not (Sys.file_exists log_dir) then
+        Unix.mkdir log_dir 0o755
+      else if not (Sys.is_directory log_dir) then
+        failwith ("SC.Server: '"^log_dir^"' is not a directory. ");
+      let ic = return (Unix.open_process_in (script_cmd ())) in
+      let rec loop_success () = 
+        try%lwt
+          ic >>= wrap1 input_line >>= wrap1 is_sc_running
+          >>= function 
+          | true -> return true
+          | false -> loop_success () 
+        with _ -> return false
+      in loop_success ()
+
+  end
 
 end
 
@@ -110,11 +105,6 @@ let next_nodeID seed =
 
 module Client = struct
 
-  let make ?(addr="127.0.0.1") ?(port=57110) () =
-    let addr_unix = Unix.inet_addr_of_string addr in
-    let addr_lwt = Lwt_unix.ADDR_INET (addr_unix, port) in
-    let osc_client = (Lwt_main.run (Osc_client.create()))
-    in osc_client, addr_lwt, create_nodeID_seed ()
 
   let quit_all (osc_client, addr, _) = 
     Lwt_main.run (
@@ -122,6 +112,36 @@ module Client = struct
           address = "/quit"; arguments = [] })
       >> Osc_client.destroy osc_client 
     )
+
+  type finalize = [ `Quit_all | `Quit_client| `Quit_none ]
+
+  let make ?(addr="127.0.0.1") ?(port=57110) ?(finalize=`Quit_all) () =
+    let addr_unix = Unix.inet_addr_of_string addr in
+    let addr_lwt = Lwt_unix.ADDR_INET (addr_unix, port) in
+    let osc_client = (Lwt_main.run (Osc_client.create())) in
+    let client = osc_client, addr_lwt, create_nodeID_seed () 
+    in match finalize with 
+      | `Quit_all -> at_exit (fun () -> quit_all client); client
+      | `Quit_client -> at_exit (fun () -> 
+          Lwt_main.run (Osc_client.destroy osc_client)); client
+      | `Quit_none -> client
+
+
+  module Lwt = struct
+
+    let make ?(addr="127.0.0.1") ?(port=57110) ?(at_exit_=`Quit_all) () =
+      let open Lwt in
+      let open Lwt_main in 
+      let addr_unix = Unix.inet_addr_of_string addr in
+      let addr_lwt = Lwt_unix.ADDR_INET (addr_unix, port) in
+      let%lwt osc_client = Osc_client.create () in
+      let client = return (osc_client, addr_lwt, create_nodeID_seed ())
+      in match at_exit_ with 
+      | `Quit_all -> at_exit (fun () -> client >>= wrap1 quit_all ); client
+      | `Quit_client -> at_exit (fun () -> Osc_client.destroy osc_client); client
+      | `Quit_none -> client
+
+  end
 
 end
 
