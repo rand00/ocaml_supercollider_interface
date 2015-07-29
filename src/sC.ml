@@ -73,7 +73,7 @@ end = struct
       let ic = return (Unix.open_process_in (script_cmd ())) in
       let rec loop_success () = 
         try%lwt
-          ic >>= wrap1 input_line >>= wrap1 is_sc_running
+          ic >|= input_line >|= is_sc_running
           >>= function 
           | true -> return true
           | false -> loop_success () 
@@ -137,7 +137,7 @@ module Client = struct
       let%lwt osc_client = Osc_client.create () in
       let client = return (osc_client, addr_lwt, create_nodeID_seed ())
       in match at_exit_ with 
-      | `Quit_all -> at_exit (fun () -> client >>= wrap1 quit_all ); client
+      | `Quit_all -> at_exit (fun () -> client >|= quit_all ); client
       | `Quit_client -> at_exit (fun () -> Osc_client.destroy osc_client); client
       | `Quit_none -> client
 
