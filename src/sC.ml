@@ -108,7 +108,7 @@ module Client = struct
 
   let quit_all (osc_client, addr, _) = 
     Lwt_main.run (
-      Osc_client.send osc_client addr Osc.(Message {
+      Osc_client.send osc_client addr Osc.Types.(Message {
           address = "/quit"; arguments = [] })
       >> Osc_client.destroy osc_client 
     )
@@ -147,7 +147,7 @@ end
 
 module Synth = struct
 
-  open Osc
+  open Osc.Types
 
   type arg_rhs = [
     | `F of float
